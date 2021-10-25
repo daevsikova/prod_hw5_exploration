@@ -87,14 +87,14 @@ class PPO:
 
     def update(self, trajectories):
         transitions = [t for traj in trajectories for t in traj] # Turn a list of trajectories into list of transitions
-        state, action, old_log_prob, target_value = zip(*transitions)
+        state, action, old_log_prob, target_value, advantage= zip(*transitions)
         state = torch.cat(state, dim=0).to(self.device)
         action = torch.Tensor(action).to(self.device)
-        old_log_prob = torch.Tensor(old_log_prob)
-        target_value = torch.Tensor(target_value)
-        # advantage = torch.Tensor(advantage)
-        # advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
+        old_log_prob = torch.Tensor(old_log_prob).to(self.device)
+        target_value = torch.Tensor(target_value).to(self.device)
+        advantage = torch.Tensor(advantage).to(self.device)
         target_value = (target_value - target_value.mean()) / (target_value.std() + 1e-8)
+        advantage = (advantage - advantage.mean()) / (advantage.std() + 1e-8)
 
         self._loss_actor = 0.0
         self._loss_critic = 0.0
@@ -105,8 +105,7 @@ class PPO:
             a = action[idx].float()
             log_old_prob = old_log_prob[idx].float() # Probability of the action in state s.t. old policy
             tar_val = target_value[idx].float() # Estimated by lambda-returns 
-            adv = tar_val - self.critic.get_value(s).detach()
-            # adv = advantage[idx].float() # Estimated by generalized advantage estimation 
+            adv = advantage[idx].float()
             
             log_prob, distr_entropy = self.actor.compute_proba(s, a)
 
@@ -211,17 +210,17 @@ def sample_episode(env, agent):
 
 def compute_lambda_returns_and_gae(trajectory, opt):
     lambda_returns = []
-    # gae = []
+    gae = []
     last_lr = 0.
-    # last_value = 0.
+    last_value = 0.
     for _, _, reward, _, value in reversed(trajectory):
-        ret = reward + (opt.gamma * last_lr)
-        # ret = reward + opt.gamma * (last_value * (1 - opt.lambda_) + last_lr * opt.lambda_)
+        # ret = reward + (opt.gamma * last_lr)
+        ret = reward + opt.gamma * (last_value * (1 - opt.lambda_) + last_lr * opt.lambda_)
         last_lr = ret
-        # last_value = value
+        last_value = value
         lambda_returns.append(last_lr)
-        # gae.append(last_lr - value)
+        gae.append(last_lr - value)
     
     # Each transition contains state, action, old action probability, value estimation and advantage estimation
-    # return [(obs, act, prob, val, adv) for (obs, act, _, prob, _), val, adv in zip(trajectory, reversed(lambda_returns), reversed(gae))]
-    return [(obs, act, prob, val) for (obs, act, _, prob, _), val in zip(trajectory, reversed(lambda_returns))]
+    return [(obs, act, prob, val, adv) for (obs, act, _, prob, _), val, adv in zip(trajectory, reversed(lambda_returns), reversed(gae))]
+    # return [(obs, act, prob, val) for (obs, act, _, prob, _), val in zip(trajectory, reversed(lambda_returns))]
