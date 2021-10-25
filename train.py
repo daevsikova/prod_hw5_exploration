@@ -76,8 +76,6 @@ if __name__ == "__main__":
     episodes_sampled = 0
     steps_sampled = 0
     
-    if not os.environ.get("WANDB_API_KEY", None):
-        os.environ["WANDB_API_KEY"] = "e891f26c3ad7fd5a7e215dc4e344acc89c8861da"
     name = opt.name + datetime.strftime(datetime.now(), "_%h%d_%H%M%S")
     wandb.init(project='prod_hw5_rl', entity='daevsikova', config=opt, name=name)
     

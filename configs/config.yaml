@@ -10,7 +10,7 @@ critic_lr: 0.0001
 n_iter: 10000
 min_episodes_per_update: 4
 min_transitions_per_update: 2000
-device: cuda
+device: cpu
 
 # env_params
 width: 20
@@ -23,7 +23,7 @@ vision_radius: 5
 observation_size: 11
 action_dim: 3
 out_dim_critic: 1
-reward: custom
+reward: default
 
 # model params
 conv_filters: [

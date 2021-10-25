@@ -37,7 +37,7 @@ class Actor(nn.Module):
         action = dist.sample()
         action_logprob = dist.log_prob(action)
         
-        return action.detach(), action_logprob.detach()
+        return action, action_logprob
 
     def compute_proba(self, state, action):
         # Returns probability of action according to current policy and distribution of actions (use it to compute entropy loss) 
@@ -103,13 +103,13 @@ class PPO:
             idx = np.random.randint(0, len(transitions), self.opt.batch_size) # Choose random batch
             s = state[idx].float()
             a = action[idx].float()
-            log_old_prob = old_log_prob[idx].float() # Probability of the action in state s.t. old policy
-            tar_val = target_value[idx].float() # Estimated by lambda-returns 
-            adv = advantage[idx].float()
+            log_old_prob = old_log_prob[idx].float().detach() # Probability of the action in state s.t. old policy
+            tar_val = target_value[idx].float().detach() # Estimated by lambda-returns 
+            adv = advantage[idx].float().detach()
             
             log_prob, distr_entropy = self.actor.compute_proba(s, a)
 
-            ratios = torch.exp(log_prob - log_old_prob.detach())
+            ratios = torch.exp(log_prob - log_old_prob)
             surr1 = ratios * adv
             surr2 = torch.clamp(ratios, 1.0 - self.opt.clip, 1.0 + self.opt.clip) * adv
             distr_entropy = distr_entropy.mean()
